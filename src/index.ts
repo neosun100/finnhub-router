@@ -24,17 +24,28 @@ const app = new Hono<{ Bindings: Env }>();
 let keyPool: KeyPool | null = null;
 let cache: ResponseCache | null = null;
 
+// In Node.js mode, c.env is empty — fall back to process.env
+function getEnv(env: Env): Env {
+  return {
+    FINNHUB_KEYS: env.FINNHUB_KEYS || process.env.FINNHUB_KEYS || '',
+    CACHE_TTL: env.CACHE_TTL || process.env.CACHE_TTL,
+    AUTH_TOKEN: env.AUTH_TOKEN || process.env.AUTH_TOKEN,
+  };
+}
+
 function getKeyPool(env: Env): KeyPool {
+  const e = getEnv(env);
   if (!keyPool) {
-    const keys = env.FINNHUB_KEYS.split(',').map(k => k.trim()).filter(Boolean);
+    const keys = e.FINNHUB_KEYS.split(',').map(k => k.trim()).filter(Boolean);
     keyPool = new KeyPool(keys);
   }
   return keyPool;
 }
 
 function getCache(env: Env): ResponseCache {
+  const e = getEnv(env);
   if (!cache) {
-    cache = new ResponseCache(parseInt(env.CACHE_TTL || '30', 10));
+    cache = new ResponseCache(parseInt(e.CACHE_TTL || '30', 10));
   }
   return cache;
 }
@@ -44,7 +55,7 @@ function getCache(env: Env): ResponseCache {
 // 2. Query:  ?token=<router_token>
 // 3. Header: Authorization: Bearer <router_token>  (额外支持)
 app.use('/api/*', async (c, next) => {
-  const authToken = c.env.AUTH_TOKEN;
+  const authToken = getEnv(c.env).AUTH_TOKEN;
   if (authToken) {
     const provided =
       c.req.header('X-Finnhub-Token')
