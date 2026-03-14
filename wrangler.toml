@@ -1,0 +1,10 @@
+name = "finnhub-router"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+CACHE_TTL = "30"
+AUTH_TOKEN = ""
+
+# 50 个 Finnhub API Key，部署时通过 wrangler secret 或 vars 设置
+# FINNHUB_KEYS = "key1,key2,key3,..."

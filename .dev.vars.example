@@ -1,0 +1,8 @@
+# Finnhub API Keys (逗号分隔，最多 50 个)
+FINNHUB_KEYS=your_key_1,your_key_2,your_key_3
+
+# 响应缓存 TTL（秒）
+CACHE_TTL=30
+
+# Router 认证 Token（客户端用此 token 访问本服务）
+AUTH_TOKEN=fhr_your_token_here
