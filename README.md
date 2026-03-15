@@ -187,6 +187,43 @@ server {
 }
 ```
 
+## Deploy to VPS (Node.js + PM2 + NGINX)
+
+```bash
+# On your server
+npm install --omit=dev @hono/node-server tsx
+
+# Create PM2 ecosystem config with env vars
+pm2 start ./node_modules/.bin/tsx --name finnhub-router -- src/server.ts
+
+# Set environment variables in ecosystem.config.cjs:
+#   PORT=4007
+#   FINNHUB_KEYS=key1,key2,...
+#   AUTH_TOKEN=fhr_your_token
+#   CACHE_TTL=30
+
+# Enable auto-restart on reboot
+pm2 save && pm2 startup
+```
+
+NGINX reverse proxy config:
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name finnhub.your-domain.com;
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:4007;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 ## Configuration
 
 | Variable | Description | Default | Required |
@@ -218,6 +255,67 @@ On 401/403/429: key marked unhealthy → auto-retry on next key → unhealthy ke
 
 ### Caching
 GET requests cached by URL path + query params (excluding `token`). `X-Cache: HIT/MISS` header. In-memory LRU, max 1000 entries.
+
+## API Endpoint Test Results (42 tested)
+
+*Tested on 2026-03-15 via `finnhub.aws.xin` with free-tier API keys*
+
+### Free Endpoints (23/23 ✅)
+
+| Endpoint | Status | Description |
+|----------|--------|-------------|
+| `/api/v1/quote` | ✅ | Real-time stock quote |
+| `/api/v1/stock/profile2` | ✅ | Company profile |
+| `/api/v1/company-news` | ✅ | Company news articles |
+| `/api/v1/news` | ✅ | Market news |
+| `/api/v1/stock/peers` | ✅ | Company peers |
+| `/api/v1/stock/metric` | ✅ | Basic financials (52-week high/low, PE, etc.) |
+| `/api/v1/stock/earnings` | ✅ | Earnings surprises |
+| `/api/v1/calendar/earnings` | ✅ | Earnings calendar |
+| `/api/v1/calendar/ipo` | ✅ | IPO calendar |
+| `/api/v1/stock/recommendation` | ✅ | Analyst recommendation trends |
+| `/api/v1/stock/market-status` | ✅ | Market open/close status |
+| `/api/v1/stock/symbol` | ✅ | Stock symbols list |
+| `/api/v1/stock/insider-transactions` | ✅ | Insider transactions |
+| `/api/v1/stock/insider-sentiment` | ✅ | Insider sentiment |
+| `/api/v1/stock/financials-reported` | ✅ | SEC financials reported |
+| `/api/v1/stock/filings` | ✅ | SEC filings |
+| `/api/v1/forex/exchange` | ✅ | Forex exchange list |
+| `/api/v1/forex/symbol` | ✅ | Forex symbols |
+| `/api/v1/crypto/exchange` | ✅ | Crypto exchange list |
+| `/api/v1/crypto/symbol` | ✅ | Crypto symbols |
+| `/api/v1/country` | ✅ | Country list |
+| `/api/v1/stock/sector-metric` | ✅ | Sector performance metrics |
+| `/api/v1/fda-advisory-committee-calendar` | ✅ | FDA calendar |
+
+### Paid Endpoints (5 🔒 — require Finnhub premium plan)
+
+| Endpoint | Status | Note |
+|----------|--------|------|
+| `/api/v1/stock/price-target` | 🔒 | Analyst price targets |
+| `/api/v1/stock/upgrade-downgrade` | 🔒 | Upgrade/downgrade history |
+| `/api/v1/stock/candle` | 🔒 | Stock OHLCV candles |
+| `/api/v1/stock/revenue-estimate` | 🔒 | Revenue estimates |
+| `/api/v1/stock/eps-estimate` | 🔒 | EPS estimates |
+
+### Paid Endpoints (14 🔒 — return empty via free keys)
+
+| Endpoint | Status | Note |
+|----------|--------|------|
+| `/api/v1/stock/dividend` | 🔒 | Dividends |
+| `/api/v1/stock/split` | 🔒 | Stock splits |
+| `/api/v1/forex/candle` | 🔒 | Forex OHLCV candles |
+| `/api/v1/forex/rates` | 🔒 | Forex exchange rates |
+| `/api/v1/crypto/candle` | 🔒 | Crypto OHLCV candles |
+| `/api/v1/crypto/profile` | 🔒 | Crypto profile |
+| `/api/v1/index/constituents` | 🔒 | Index constituents |
+| `/api/v1/etf/holdings` | 🔒 | ETF holdings |
+| `/api/v1/etf/profile` | 🔒 | ETF profile |
+| `/api/v1/scan/pattern` | 🔒 | Pattern recognition |
+| `/api/v1/scan/support-resistance` | 🔒 | Support/resistance levels |
+| `/api/v1/indicator` | 🔒 | Technical indicators |
+| `/api/v1/calendar/economic` | 🔒 | Economic calendar |
+| `/api/v1/stock/social-sentiment` | 🔒 | Social media sentiment |
 
 ## Throughput
 

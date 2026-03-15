@@ -9,6 +9,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.11",
     "hono": "^4.12.8"
   },
   "devDependencies": {

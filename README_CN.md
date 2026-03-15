@@ -169,6 +169,43 @@ npm run deploy
 部署后在 Cloudflare 控制台添加自定义域名：
 **Workers & Pages → finnhub-router → Settings → Domains & Routes**
 
+## 部署到 VPS（Node.js + PM2 + NGINX）
+
+```bash
+# 在服务器上
+npm install --omit=dev @hono/node-server tsx
+
+# 用 PM2 启动（守护进程 + 自动重启）
+pm2 start ./node_modules/.bin/tsx --name finnhub-router -- src/server.ts
+
+# 环境变量通过 ecosystem.config.cjs 配置：
+#   PORT=4007
+#   FINNHUB_KEYS=key1,key2,...
+#   AUTH_TOKEN=fhr_your_token
+#   CACHE_TTL=30
+
+# 开机自启
+pm2 save && pm2 startup
+```
+
+NGINX 反代配置：
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name finnhub.your-domain.com;
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:4007;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 ## 配置项
 
 | 变量 | 说明 | 默认值 | 必填 |
